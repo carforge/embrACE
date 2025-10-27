@@ -4,39 +4,33 @@ import pandas as pd
 from ace_core.agent import run_agent
 from ace_data.logger import log_interaction
 
-st.set_page_config(page_title="EmbrACE", layout="wide")
-st.title("🤖 EmbrACE – Agentic Context Engineering")
+# Title
+st.title("💬 Ask EmbrACE")
 
-# Ensure the table exists before querying
-with sqlite3.connect("ace_data/context_traces.db") as conn:
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS traces (
-            timestamp TEXT,
-            user_input TEXT,
-            agent_response TEXT
-        )
-    ''')
-    conn.commit()
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    try:
-        df = pd.read_sql_query("SELECT * FROM traces ORDER BY timestamp DESC", conn)
-    except Exception:
-        df = pd.DataFrame(columns=["user_input", "agent_response"])
+# Display chat history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# Display question-answer table
-st.subheader("🧠 Conversation History")
-st.table(df.rename(columns={
-    'user_input': 'Question',
-    'agent_response': 'Answer'
-}))
+# Chat input
+if prompt := st.chat_input("Your question..."):
+    # Add user message to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-# Input field below the table
-st.subheader("💬 Ask EmbrACE")
-user_input = st.text_area("Your question:", "", height=100)
+    # Run your local agent (Ollama)
+    with st.chat_message("assistant"):
+        response = run_agent(prompt)
+        agent_reply = response["messages"][-1].content
+        st.markdown(agent_reply)
 
-if st.button("Submit") and user_input.strip():
-    response = run_agent(user_input)
-    log_interaction(user_input, response["messages"][-1].content)
-    st.markdown(f"**Agent Response:** {response['messages'][-1].content}")
-    st.markdown(f"Log: {response['messages']}")
+    # Add agent response to history
+    st.session_state.messages.append({"role": "assistant", "content": agent_reply})
+
+    # Optional: log interaction
+    log_interaction(prompt, agent_reply)
