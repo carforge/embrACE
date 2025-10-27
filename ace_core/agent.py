@@ -1,29 +1,25 @@
-from langchain_core.runnables import Runnable
+from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage
-from langchain.agents import create_tool_calling_agent
-from langchain_core.tools import Tool
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import MessagesPlaceholder
-
 from ace_core.llm import llm
 from ace_core.tools import tools
 from ace_core.memory import InMemoryChatHistory
 
 # Create the agent
-agent_runnable: Runnable = create_tool_calling_agent(llm=llm, tools=tools)
-
-# Create the executor with memory
-chat_history = InMemoryChatHistory()
-
-agent_executor = AgentExecutor(
-    agent=agent_runnable,
+agent = create_agent(
+    model=llm,
     tools=tools,
-    handle_parsing_errors=True,
+    system_prompt="You are a helpful assistant."
 )
 
-# Optional: wrapper function to run agent with memory
+# Create memory
+chat_history = InMemoryChatHistory()
+
+# Run the agent
 def run_agent(user_input: str) -> str:
     chat_history.add_user_message(user_input)
-    response = agent_executor.invoke({"input": user_input, "chat_history": chat_history.get_messages()})
-    chat_history.add_ai_message(response["output"])
-    return response["output"]
+    response = agent.invoke({
+        "messages": chat_history.get_messages()
+    })
+    if isinstance(response["messages"][-1], AIMessage):
+        chat_history.add_ai_message(response["messages"][-1].content)
+    return response

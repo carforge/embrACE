@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 
 def log_interaction(user_input, agent_response):
-    conn = sqlite3.connect("ace_data_store/context_traces.db")
+    conn = sqlite3.connect("ace_data/context_traces.db")
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS traces (
                     timestamp TEXT,
