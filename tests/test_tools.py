@@ -21,3 +21,11 @@ def test_greet_tool_output():
     greet_tool = next((t for t in tools if t.name == "greet"), None)
     result = greet_tool.run("Yannic")
     assert result == "Hello, Yannic!", f"Expected 'Hello, Yannic!', got '{result}'"
+
+def test_tavily_tool():
+    tavily_tool = next((t for t in tools if "search" in t.name.lower()), None)
+    assert tavily_tool is not None
+    result = tavily_tool.run("What is LangChain?")
+    assert isinstance(result, dict)
+    assert "answer" in result
+    assert isinstance(result["answer"], str) or result["answer"] is None
